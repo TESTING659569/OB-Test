@@ -1,0 +1,27 @@
+
+# Local multi-time count runs (no Cloudflare)
+CFl_data/local_counts/
+
+# Monitor auto-generated outputs (stored in R2, never committed)
+monitor_stats.yml
+monitor/report_*.json
+
+offices/__init__.py
+skill.md
+websites-config-template.yml
+websites-config-prompt.md
+websites-config.yml
+prompts/monitor-prompt.md
+prompts/excel-schema-prompt.md
+prompts/*
+monitor.md
+monitor/__pycache__/inspect_r2_schema.cpython-311.pyc
+monitor/site.yml
+monitor/__pycache__/github_workflows.cpython-311.pyc
+.venv/*
+*.html
+.js
+monitor/__pycache__/r2_file_counter.cpython-311.pyc
+doc/*
+
+scripts/__pycache__/storage_client.cpython-311.pyc

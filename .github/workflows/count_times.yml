@@ -1,0 +1,113 @@
+name: Count Ads by Time (no Cloudflare)
+
+# Runs CFl_data scrapers at several times of day, counts ads only,
+# and does NOT upload anything to Cloudflare R2.
+# Compare results in count_times_history.json to pick a daily cron time.
+
+on:
+  schedule:
+    # UTC times — local (UTC+3): 03:00, 09:00, 15:00, 21:00
+    - cron: '0 0 * * *'
+    - cron: '0 6 * * *'
+    - cron: '0 12 * * *'
+    - cron: '0 18 * * *'
+
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'What to scrape'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - properties
+          - offices
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write
+
+jobs:
+  count-ads:
+    name: Count properties + offices ads
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: playwright install chromium
+
+      - name: Install Playwright system dependencies
+        run: playwright install-deps chromium
+
+      - name: Run count scrapers (no R2 upload)
+        id: scrape
+        run: |
+          ONLY="${{ github.event.inputs.only }}"
+          if [ -z "$ONLY" ]; then
+            ONLY="all"
+          fi
+          echo "Running with --only=$ONLY --ci"
+          python CFl_data/local_multi_count.py --only "$ONLY" --ci
+
+      - name: Show summary in logs
+        if: always()
+        run: |
+          echo "===== count_times_latest.json ====="
+          if [ -f count_times_latest.json ]; then
+            cat count_times_latest.json
+          else
+            echo "(missing)"
+          fi
+          echo ""
+          echo "===== recent history ====="
+          if [ -f count_times_history.json ]; then
+            python CFl_data/local_multi_count.py --compare --ci
+          fi
+
+      - name: Upload count artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: count-times-${{ github.run_id }}
+          path: |
+            count_times_latest.json
+            count_times_history.json
+            CFl_data/local_counts/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Commit history to repo
+        if: always()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add count_times_latest.json count_times_history.json
+          git commit -m "Update count_times history ($(date -u +"%Y-%m-%d %H:%M UTC"))" || echo "No changes to commit"
+          git pull --rebase origin main || true
+          git push

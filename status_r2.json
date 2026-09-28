@@ -1,0 +1,18 @@
+{
+  "date": "2026-09-16 03:03:48 UTC",
+  "timestamp": "2026-09-16T03:03:48Z",
+  "storage": "cloudflare-r2",
+  "overall_status": "success",
+  "workflows": {
+    "properties": {
+      "status": "success",
+      "workflow": "scraper_r2.yml"
+    },
+    "offices": {
+      "status": "success",
+      "workflow": "scraper_r2.yml"
+    }
+  },
+  "pipeline_run_id": "35046532822",
+  "pipeline_run_number": "143"
+}

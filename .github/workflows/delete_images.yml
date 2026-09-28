@@ -1,0 +1,136 @@
+name: Delete Boshamlan Images
+
+on:
+  # Weekly cleanup: remove all stored Boshamlan images
+  schedule:
+    - cron: '0 3 * * 0'
+
+  workflow_dispatch:
+    inputs:
+      storage:
+        description: 'Storage backend'
+        required: true
+        type: choice
+        options:
+          - aws
+          - r2
+        default: aws
+      mode:
+        description: 'Deletion mode'
+        required: true
+        type: choice
+        options:
+          - all
+          - list
+          - partition
+          - orphans
+          - older-than
+        default: all
+      dataset:
+        description: 'Dataset to target'
+        required: true
+        type: choice
+        options:
+          - both
+          - properties
+          - offices
+        default: both
+      date:
+        description: 'Date YYYY-MM-DD (for list/partition/orphans)'
+        required: false
+        type: string
+        default: ''
+      days:
+        description: 'Retention days (for older-than mode)'
+        required: false
+        type: string
+        default: '90'
+      execute:
+        description: 'Actually delete objects (unchecked = dry run)'
+        required: false
+        type: boolean
+        default: true
+      confirm_all:
+        description: 'Required when mode=all and execute=true'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: read
+
+jobs:
+  delete-images:
+    name: Delete Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build CLI command
+        id: cmd
+        run: |
+          STORAGE="${{ github.event.inputs.storage || 'aws' }}"
+          MODE="${{ github.event.inputs.mode || 'all' }}"
+          DATASET="${{ github.event.inputs.dataset || 'both' }}"
+          DAYS="${{ github.event.inputs.days || '90' }}"
+          EXECUTE="${{ github.event.inputs.execute || 'false' }}"
+          CONFIRM_ALL="${{ github.event.inputs.confirm_all || 'false' }}"
+          DATE="${{ github.event.inputs.date }}"
+
+          # Scheduled runs: delete every stored image.
+          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+            MODE="all"
+            EXECUTE="true"
+            CONFIRM_ALL="true"
+          fi
+
+          CMD="python scripts/delete_images.py --storage $STORAGE --mode $MODE --dataset $DATASET --days $DAYS"
+
+          if [[ -n "$DATE" ]]; then
+            CMD="$CMD --date $DATE"
+          fi
+
+          if [[ "$EXECUTE" == "true" ]]; then
+            CMD="$CMD --execute"
+          fi
+
+          if [[ "$CONFIRM_ALL" == "true" ]]; then
+            CMD="$CMD --confirm-all"
+          fi
+
+          echo "command=$CMD" >> $GITHUB_OUTPUT
+          echo "storage=$STORAGE" >> $GITHUB_OUTPUT
+          echo "Running: $CMD"
+
+      - name: Run image deletion (AWS)
+        if: steps.cmd.outputs.storage == 'aws'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: ${{ steps.cmd.outputs.command }}
+
+      - name: Run image deletion (R2)
+        if: steps.cmd.outputs.storage == 'r2'
+        env:
+          CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+          CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+          CF_R2_ENDPOINT_URL: ${{ secrets.CF_R2_ENDPOINT_URL }}
+          CF_R2_BUCKET_NAME: ${{ secrets.CF_R2_BUCKET_NAME }}
+        run: ${{ steps.cmd.outputs.command }}

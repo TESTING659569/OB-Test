@@ -1,0 +1,205 @@
+name: Daily Pipeline
+
+on:
+  # Run every day at 1:00 AM UTC
+  schedule:
+    - cron: '0 1 * * *'
+  
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+  
+  # Allow being called from another workflow
+  workflow_call:
+    outputs:
+      properties_status:
+        description: 'Status of properties scraper'
+        value: ${{ jobs.scrape-properties.outputs.status }}
+      offices_status:
+        description: 'Status of offices scraper'
+        value: ${{ jobs.scrape-offices.outputs.status }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+permissions:
+  contents: write  # Allow workflow to push changes
+
+jobs:
+  scrape-properties:
+    name: Scrape Properties
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.run_scraper.outcome }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+      
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: |
+          playwright install chromium
+      
+      - name: Install Playwright system dependencies
+        run: |
+          playwright install-deps chromium
+      
+      - name: Run properties scraper
+        id: run_scraper
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          cd properties && python main_s3.py
+      
+      - name: Upload summary
+        if: always()
+        run: |
+          echo "Properties scraper completed at $(date)"
+          echo "Status: ${{ steps.run_scraper.outcome }}"
+  
+  scrape-offices:
+    name: Scrape Offices
+    runs-on: ubuntu-latest
+    needs: scrape-properties
+    outputs:
+      status: ${{ steps.run_scraper.outcome }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+      
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: |
+          playwright install chromium
+      
+      - name: Install Playwright system dependencies
+        run: |
+          playwright install-deps chromium
+      
+      - name: Run offices scraper
+        id: run_scraper
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          cd offices && python main_offices_s3.py
+      
+      - name: Upload summary
+        if: always()
+        run: |
+          echo "Offices scraper completed at $(date)"
+          echo "Status: ${{ steps.run_scraper.outcome }}"
+  
+  update-status:
+    name: Update Status File
+    needs: [scrape-properties, scrape-offices]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN || secrets.GITHUB_TOKEN }}
+      
+      - name: Determine overall status
+        id: status
+        run: |
+          PROPERTIES_STATUS="${{ needs.scrape-properties.outputs.status }}"
+          OFFICES_STATUS="${{ needs.scrape-offices.outputs.status }}"
+          
+          echo "Properties status: $PROPERTIES_STATUS"
+          echo "Offices status: $OFFICES_STATUS"
+          
+          # Determine overall status
+          if [[ "$PROPERTIES_STATUS" == "success" && "$OFFICES_STATUS" == "success" ]]; then
+            OVERALL_STATUS="success"
+          else
+            OVERALL_STATUS="failed"
+          fi
+          
+          echo "overall_status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
+          echo "properties_status=$PROPERTIES_STATUS" >> $GITHUB_OUTPUT
+          echo "offices_status=$OFFICES_STATUS" >> $GITHUB_OUTPUT
+      
+      - name: Create status.json
+        run: |
+          cat > status.json << EOF
+          {
+            "date": "$(date -u +"%Y-%m-%d %H:%M:%S UTC")",
+            "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+            "overall_status": "${{ steps.status.outputs.overall_status }}",
+            "workflows": {
+              "properties": {
+                "status": "${{ steps.status.outputs.properties_status }}",
+                "workflow": "scraper.yml"
+              },
+              "offices": {
+                "status": "${{ steps.status.outputs.offices_status }}",
+                "workflow": "scraper.yml"
+              }
+            },
+            "pipeline_run_id": "${{ github.run_id }}",
+            "pipeline_run_number": "${{ github.run_number }}"
+          }
+          EOF
+          
+          cat status.json
+      
+      - name: Commit and push status.json
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add status.json
+          git commit -m "Update status.json - ${{ steps.status.outputs.overall_status }} ($(date -u +"%Y-%m-%d %H:%M UTC"))" || echo "No changes to commit"
+          git pull --rebase origin main
+          git push
+      
+      - name: Upload status as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-status
+          path: status.json
+          retention-days: 30
+
+
