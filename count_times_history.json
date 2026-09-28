@@ -1,0 +1,13 @@
+[
+  {
+    "scraped_at": "2026-09-28T08:59:42",
+    "scraped_at_utc": "2026-09-28T08:59:42Z",
+    "properties_ads": 725,
+    "offices_filtered_listings": 188,
+    "offices_site_ads_total": 2024,
+    "offices_count": 156,
+    "run_id": "36400615188",
+    "run_number": "1",
+    "workflow": "Count Ads by Time (no Cloudflare)"
+  }
+]
