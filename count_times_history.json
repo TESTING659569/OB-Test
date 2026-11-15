@@ -2099,5 +2099,16 @@
     "run_id": "43676909473",
     "run_number": "192",
     "workflow": "Count Ads by Time (no Cloudflare)"
+  },
+  {
+    "scraped_at": "2026-11-15T13:29:27",
+    "scraped_at_utc": "2026-11-15T13:29:27Z",
+    "properties_ads": 804,
+    "offices_filtered_listings": 198,
+    "offices_site_ads_total": 2016,
+    "offices_count": 146,
+    "run_id": "43719201706",
+    "run_number": "193",
+    "workflow": "Count Ads by Time (no Cloudflare)"
   }
 ]
