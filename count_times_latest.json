@@ -1,36 +1,36 @@
 {
-  "scraped_at": "2026-11-16T04:25:47",
-  "scraped_at_utc": "2026-11-16T04:25:47Z",
+  "scraped_at": "2026-11-16T14:54:33",
+  "scraped_at_utc": "2026-11-16T14:54:33Z",
   "upload_to_cloudflare": false,
   "properties": {
     "success": true,
-    "total_ads": 614,
+    "total_ads": 929,
     "by_category": {
       "rent": {
-        "total_ads": 250,
+        "total_ads": 390,
         "subcategories": {
-          "عقارات": 125,
-          "شقة": 74,
-          "بيت": 35,
+          "عقارات": 194,
+          "شقة": 125,
+          "بيت": 49,
           "أرض": 0,
-          "عمارة": 3,
+          "عمارة": 5,
           "شاليه": 0,
           "مزرعة": 0,
-          "تجاري": 9,
-          "مكتب": 4
+          "تجاري": 12,
+          "مكتب": 5
         }
       },
       "sale": {
-        "total_ads": 358,
+        "total_ads": 533,
         "subcategories": {
-          "عقارات": 179,
-          "شقة": 3,
-          "بيت": 85,
-          "أرض": 68,
-          "عمارة": 18,
-          "شاليه": 4,
+          "عقارات": 266,
+          "شقة": 4,
+          "بيت": 136,
+          "أرض": 89,
+          "عمارة": 27,
+          "شاليه": 8,
           "مزرعة": 0,
-          "تجاري": 1,
+          "تجاري": 3,
           "مكتب": 0
         }
       },
@@ -42,15 +42,15 @@
         }
       }
     },
-    "duration_sec": 2076,
+    "duration_sec": 2112,
     "error": null
   },
   "offices": {
     "success": true,
     "offices_count": 145,
-    "filtered_listings": 132,
-    "site_ads_total": 2039,
-    "duration_sec": 1116,
+    "filtered_listings": 213,
+    "site_ads_total": 2043,
+    "duration_sec": 1406,
     "error": null
   }
 }
