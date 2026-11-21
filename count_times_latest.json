@@ -1,32 +1,32 @@
 {
-  "scraped_at": "2026-11-21T18:25:16",
-  "scraped_at_utc": "2026-11-21T18:25:16Z",
+  "scraped_at": "2026-11-21T22:46:22",
+  "scraped_at_utc": "2026-11-21T22:46:22Z",
   "upload_to_cloudflare": false,
   "properties": {
     "success": true,
-    "total_ads": 567,
+    "total_ads": 614,
     "by_category": {
       "rent": {
-        "total_ads": 257,
+        "total_ads": 282,
         "subcategories": {
-          "عقارات": 128,
-          "شقة": 95,
-          "بيت": 24,
+          "عقارات": 141,
+          "شقة": 103,
+          "بيت": 26,
           "أرض": 0,
-          "عمارة": 4,
+          "عمارة": 5,
           "شاليه": 0,
           "مزرعة": 0,
-          "تجاري": 5,
+          "تجاري": 6,
           "مكتب": 1
         }
       },
       "sale": {
-        "total_ads": 310,
+        "total_ads": 332,
         "subcategories": {
-          "عقارات": 155,
-          "شقة": 5,
-          "بيت": 73,
-          "أرض": 52,
+          "عقارات": 166,
+          "شقة": 6,
+          "بيت": 78,
+          "أرض": 57,
           "عمارة": 15,
           "شاليه": 8,
           "مزرعة": 0,
@@ -42,15 +42,15 @@
         }
       }
     },
-    "duration_sec": 2235,
+    "duration_sec": 2033,
     "error": null
   },
   "offices": {
-    "success": true,
-    "offices_count": 145,
-    "filtered_listings": 141,
-    "site_ads_total": 1986,
-    "duration_sec": 1179,
-    "error": null
+    "success": false,
+    "offices_count": null,
+    "filtered_listings": null,
+    "site_ads_total": null,
+    "duration_sec": null,
+    "error": "TimeoutError: Page.goto: Timeout 30000ms exceeded.\nCall log:\nnavigating to \"https://www.boshamlan.com/agents/41111571\", waiting until \"domcontentloaded\"\n"
   }
 }
